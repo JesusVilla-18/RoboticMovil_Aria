@@ -159,12 +159,30 @@ int main(int argc, char **argv)
       angle = calcula_angulo(pos_x_nodo_1, pos_y_nodo_1, pos_x_nodo_2, pos_y_nodo_2, distancia, angulo)*180/M_PI;
       angulo_a_rotar = angle - angulo_anterior;
 
-      printf("directMotionExample: Setting rot velocity to 45 deg/sec to rotate %.2f deg", angulo_a_rotar);
+	  ArTime start;
+      printf("directMotionExample: Telling the robot to turn to %.2f, then sleeping 4 seconds\n",angle);
       robot.lock();
-      robot.setRotVel(45);
+      robot.setHeading(angle);
       robot.unlock();
-      ArUtil::sleep(angulo_a_rotar/45 * 1000);
-      angulo_anterior = angle;
+      start.setToNow();
+      while (1)
+      {
+          robot.lock();
+          if (robot.isHeadingDone(5))
+          {
+              printf("directMotionExample: Finished turn\n");
+              robot.unlock();
+              break;
+          }
+          if (start.mSecSince() > 5000)
+          {
+              printf("directMotionExample: Turn timed out\n");
+              robot.unlock();
+              break;
+          }
+          robot.unlock();
+          ArUtil::sleep(100);
+      }
 
       printf("Stopping\n");
       robot.lock();
@@ -175,7 +193,6 @@ int main(int argc, char **argv)
       robot.lock();
       robot.move(distance);
       robot.unlock();
-      ArTime start;
       start.setToNow();
       while (1)
       {
